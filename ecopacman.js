@@ -6,8 +6,8 @@ const config = {
   width: 800,
   height: 600,
   gridSize: 40, // Taille d'une cellule de la grille
-  playerSpeed: 3,
-  pollutionSpeed: 2,
+  playerSpeed: 2,
+  pollutionSpeed: 1,
   playerSize: 30, // Taille explicite du joueur
   wallPadding: 5  // Espace supplémentaire autour des murs pour faciliter les déplacements
 };
@@ -32,6 +32,10 @@ class EcoPacMan {
     });
     document.body.appendChild(this.app.view);
 
+    this.backgroundMusic = new Audio('assets/sound.mp3');
+    this.backgroundMusic.volume = 1;
+    this.backgroundMusic.loop = true;
+
     // États du jeu
     this.gameState = {
       score: 0,
@@ -55,6 +59,104 @@ class EcoPacMan {
       this.setupEventListeners();
       this.startGameLoop();
     });
+
+    // Créer d'abord un écran de démarrage
+    this.showStartScreen();
+  }
+
+  // Ajouter cette nouvelle méthode
+  showStartScreen() {
+    // Créer un conteneur pour l'écran de démarrage
+    this.startScreen = new PIXI.Container();
+    this.app.stage.addChild(this.startScreen);
+
+    // Fond de l'écran de démarrage
+    const background = new PIXI.Graphics();
+    background.beginFill(0xf8e6a4);
+    background.drawRect(0, 0, config.width, config.height);
+    background.endFill();
+    this.startScreen.addChild(background);
+
+    // Titre du jeu
+    const titleStyle = new PIXI.TextStyle({
+      fontFamily: 'Arial',
+      fontSize: 60,
+      fontWeight: 'bold',
+      fill: ['#e98017'],
+    });
+
+    const title = new PIXI.Text('ECO PAC', titleStyle);
+    title.anchor.set(0.5);
+    title.x = config.width / 2;
+    title.y = config.height / 3;
+    this.startScreen.addChild(title);
+
+    // Sous-titre
+    const subtitleStyle = new PIXI.TextStyle({
+      fontFamily: 'Arial',
+      fontSize: 24,
+      fontStyle: 'italic',
+      fill: ['#e98017'],
+    });
+
+    const subtitle = new PIXI.Text('Recyclez les déchets et sauvez l\'environnement!', subtitleStyle);
+    subtitle.anchor.set(0.5);
+    subtitle.x = config.width / 2;
+    subtitle.y = title.y + 80;
+    this.startScreen.addChild(subtitle);
+
+    // Bouton de démarrage
+    const buttonStyle = new PIXI.TextStyle({
+      fontFamily: 'Arial',
+      fontSize: 36,
+      fontWeight: 'bold',
+      fill: ['#FFFFFF'],
+    });
+
+    const button = new PIXI.Graphics();
+    button.beginFill(0x4CAF50);
+    button.drawRoundedRect(0, 0, 200, 80, 15);
+    button.endFill();
+    button.x = config.width / 2 - 100;
+    button.y = config.height / 2 + 50;
+    this.startScreen.addChild(button);
+
+    const buttonText = new PIXI.Text('JOUER', buttonStyle);
+    buttonText.anchor.set(0.5);
+    buttonText.x = button.x + 100;
+    buttonText.y = button.y + 40;
+    this.startScreen.addChild(buttonText);
+
+    // Rendre le bouton interactif
+    button.interactive = true;
+    button.buttonMode = true;
+
+    // Démarrer le jeu au clic sur le bouton
+    button.on('pointerdown', () => {
+      // Masquer l'écran de démarrage
+      this.startScreen.visible = false;
+
+      // Initialiser les éléments du jeu
+      this.loadAssets().then(() => {
+        this.setupGame();
+        this.setupEventListeners();
+        this.startGameLoop();
+
+        // Maintenant on peut jouer la musique après l'interaction utilisateur
+        this.playBackgroundMusic();
+      });
+    });
+  }
+
+  playBackgroundMusic() {
+    const playPromise = this.backgroundMusic.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        // La musique a commencé à jouer
+      }).catch(error => {
+        console.error('Erreur lors de la lecture de la musique:', error);
+      });
+    }
   }
 
   async loadAssets() {
