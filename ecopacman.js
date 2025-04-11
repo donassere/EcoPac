@@ -1607,7 +1607,7 @@ class EcoPacMan {
     this.gameState.gameOver = true;
 
     // Afficher le message de fin
-    this.messageText.text = `GAME OVER\nScore: ${this.gameState.score}\nAppuyez sur Entrée pour recommencer`;
+    this.messageText.text = `GAME OVER\nScore: ${this.gameState.score}\nEspace pour recommencer`;
     this.messageText.visible = true;
   }
 
