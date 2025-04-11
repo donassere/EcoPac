@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoPacMan - Jeu de tri écologique</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        #game-container {
+            position: relative;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 620px;
+            left: 0;
+            width: 800px;
+            color: white;
+            text-align: center;
+            font-size: 14px;
+            padding: 10px 0;
+        }
+    </style>
+    <!-- Chargement de PixiJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <!-- Chargement du script du jeu -->
+    <script src="ecopacman.js"></script>
+</head>
+<body>
+<div id="game-container">
+    <!-- Le canvas du jeu sera ajouté ici par PixiJS -->
+    <div id="instructions">
+        <p>Contrôles: Flèches ou WASD/ZQSD pour se déplacer | P pour pause</p>
+        <p>Objectif: Collectez les déchets et déposez-les dans les poubelles correspondantes!</p>
+        <p>🗑️ Jaune: Plastique | 🗑️ Bleue: Papier | 🗑️ Verte: Verre et Métal</p>
+        <p>Évitez les polluants qui vous poursuivent!</p>
+    </div>
+</div>
+</body>
+</html>
