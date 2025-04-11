@@ -6,8 +6,8 @@ const config = {
   width: 800,
   height: 600,
   gridSize: 40, // Taille d'une cellule de la grille
-  playerSpeed: 3,
-  pollutionSpeed: 2,
+  playerSpeed: 2,
+  pollutionSpeed: 1,
   playerSize: 30, // Taille explicite du joueur
   wallPadding: 5  // Espace supplémentaire autour des murs pour faciliter les déplacements
 };
@@ -37,14 +37,24 @@ class EcoPacMan {
       score: 0,
       level: 1,
       lives: 3,
-      collectedWaste: null, // Type de déchet actuellement porté
+      collectedWaste: null,
       gameOver: false,
-      paused: false
+      paused: false,
+      recycledWastes: {
+        plastic: 0,
+        paper: 0,
+        glass: 0,
+        metal: 0
+      },
+      gameInitialized: false
     };
 
     // Conteneurs principaux
     this.gameContainer = new PIXI.Container();
     this.uiContainer = new PIXI.Container();
+    this.backgroundMusic = new Audio('assets/sound.mp3');
+    this.backgroundMusic.volume = 1;
+    this.backgroundMusic.loop = true;
 
     this.app.stage.addChild(this.gameContainer);
     this.app.stage.addChild(this.uiContainer);
@@ -55,6 +65,111 @@ class EcoPacMan {
       this.setupEventListeners();
       this.startGameLoop();
     });
+    this.showStartScreen();
+  }
+
+  showStartScreen() {
+    // Créer un conteneur pour l'écran de démarrage
+    this.startScreen = new PIXI.Container();
+    this.app.stage.addChild(this.startScreen);
+
+    // Fond de l'écran de démarrage
+    const background = new PIXI.Graphics();
+    background.beginFill(0xf8e6a4);
+    background.drawRect(0, 0, config.width, config.height);
+    background.endFill();
+    this.startScreen.addChild(background);
+
+    // Titre du jeu
+    const titleStyle = new PIXI.TextStyle({
+      fontFamily: 'Arial',
+      fontSize: 60,
+      fontWeight: 'bold',
+      fill: ['#e98017'],
+    });
+
+    const title = new PIXI.Text('ECO PAC', titleStyle);
+    title.anchor.set(0.5);
+    title.x = config.width / 2;
+    title.y = config.height / 3;
+    this.startScreen.addChild(title);
+
+    // Sous-titre
+    const subtitleStyle = new PIXI.TextStyle({
+      fontFamily: 'Arial',
+      fontSize: 24,
+      fontStyle: 'italic',
+      fill: ['#e98017'],
+    });
+
+    const subtitle = new PIXI.Text('Recyclez les déchets et sauvez l\'environnement!', subtitleStyle);
+    subtitle.anchor.set(0.5);
+    subtitle.x = config.width / 2;
+    subtitle.y = title.y + 80;
+    this.startScreen.addChild(subtitle);
+
+    // Bouton de démarrage
+    const buttonStyle = new PIXI.TextStyle({
+      fontFamily: 'Arial',
+      fontSize: 36,
+      fontWeight: 'bold',
+      fill: ['#FFFFFF'],
+    });
+
+    const button = new PIXI.Graphics();
+    button.beginFill(0x4CAF50);
+    button.drawRoundedRect(0, 0, 200, 80, 15);
+    button.endFill();
+    button.x = config.width / 2 - 100;
+    button.y = config.height / 2 + 50;
+    this.startScreen.addChild(button);
+
+    const buttonText = new PIXI.Text('JOUER', buttonStyle);
+    buttonText.anchor.set(0.5);
+    buttonText.x = button.x + 100;
+    buttonText.y = button.y + 40;
+    this.startScreen.addChild(buttonText);
+
+    // Rendre le bouton interactif
+    button.interactive = true;
+    button.buttonMode = true;
+
+    // Démarrer le jeu au clic sur le bouton
+    button.on('pointerdown', () => {
+      // Masquer l'écran de démarrage
+      this.startScreen.visible = false;
+
+      // Rendre les conteneurs de jeu visibles
+      this.gameContainer.visible = true;
+      this.uiContainer.visible = true;
+
+      // Initialiser le jeu seulement s'il n'a pas déjà été initialisé
+      if (!this.gameState.gameInitialized) {
+        // Charger les assets et initialiser le jeu
+        this.loadAssets().then(() => {
+          this.setupGame();
+          this.setupEventListeners();
+          this.startGameLoop();
+          this.gameState.gameInitialized = true; // Marquer le jeu comme initialisé
+          this.playBackgroundMusic();
+        });
+      } else {
+        // Si le jeu a déjà été initialisé, simplement redémarrer
+        this.restartGame();
+        this.playBackgroundMusic();
+      }
+    });
+  }
+
+  playBackgroundMusic() {
+    const playPromise = this.backgroundMusic.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        // La musique a commencé à jouer
+      }).catch(error => {
+        console.error('Erreur lors de la lecture de la musique:', error);
+      });
+    }
   }
 
   async loadAssets() {
@@ -78,9 +193,9 @@ class EcoPacMan {
       metalBin: 'bin_red.png',
 
       pollution1: 'monster.png',
-      pollution2: 'monster.png',
-      pollution3: 'monster.png',
-      pollution4: 'monster.png',
+      pollution2: 'monster2.png',
+      pollution3: 'monster3.png',
+      pollution4: 'monster4.png',
 
       wall: 'wall.png'
     };
@@ -240,6 +355,8 @@ class EcoPacMan {
   }
 
   setupGame() {
+    this.gameContainer.removeChildren();
+    this.uiContainer.removeChildren();
     // Création du labyrinthe
     this.createMaze();
 
@@ -583,9 +700,14 @@ class EcoPacMan {
 
   createPlayer() {
     // Création du personnage joueur
+    if (this.player) {
+      this.gameContainer.removeChild(this.player);
+    }
+
+    // Création du personnage joueur
     this.player = new PIXI.Sprite(this.textures.player);
-    this.player.width = 30;
-    this.player.height = 30;
+    this.player.width = config.playerSize;
+    this.player.height = config.playerSize;
     this.player.anchor.set(0.5);
 
     // Position initiale au centre
@@ -601,7 +723,6 @@ class EcoPacMan {
     this.player.invulnerable = false;
 
     this.gameContainer.addChild(this.player);
-
     // Indicateur de déchet porté
     this.carriedWaste = new PIXI.Sprite();
     this.carriedWaste.anchor.set(0.5);
@@ -610,16 +731,18 @@ class EcoPacMan {
   }
 
   createPollutions() {
-    // Création des polluants (ennemis)
-    const pollutionCount = 3 + Math.floor(this.gameState.level / 2);
-
     // Nettoyage des polluants existants
-    if (this.pollutions.length > 0) {
+    if (this.pollutions) {
       for (const pollution of this.pollutions) {
-        this.gameContainer.removeChild(pollution);
+        if (pollution.parent) {
+          pollution.parent.removeChild(pollution);
+        }
       }
-      this.pollutions = [];
     }
+    this.pollutions = [];
+
+    // Création des nouveaux polluants
+    const pollutionCount = 3 + Math.floor(this.gameState.level / 2);
 
     const rows = Math.floor(config.height / config.gridSize);
     const cols = Math.floor(config.width / config.gridSize);
@@ -1180,6 +1303,27 @@ class EcoPacMan {
         if (bin.wasteType === this.gameState.collectedWaste) {
           // Tri correct - Points bonus
           this.gameState.score += 100;
+
+          // Incrémenter le compteur de déchets recyclés
+          if (!this.gameState.recycledWastes) {
+            this.gameState.recycledWastes = {
+              plastic: 0,
+              paper: 0,
+              glass: 0,
+              metal: 0
+            };
+          }
+
+          this.gameState.recycledWastes[this.gameState.collectedWaste]++;
+
+          // Mettre à jour le panneau d'information via la fonction JavaScript globale
+          if (window.updateInfoPanel) {
+            window.updateInfoPanel(
+              this.gameState.collectedWaste,
+              this.gameState.recycledWastes[this.gameState.collectedWaste]
+            );
+          }
+
           // Effet visuel de tri correct
           this.createTriEffect(bin.x + bin.width / 2, bin.y + bin.height / 2, true);
         } else {
@@ -1527,6 +1671,25 @@ class EcoPacMan {
       gameOver: false,
       paused: false
     };
+    this.gameState.recycledWastes = {
+      plastic: 0,
+      paper: 0,
+      glass: 0,
+      metal: 0
+    };
+
+    if (window.updateInfoPanel) {
+      window.updateInfoPanel('plastic', 0);
+      window.updateInfoPanel('paper', 0);
+      window.updateInfoPanel('glass', 0);
+      window.updateInfoPanel('metal', 0);
+
+      // Réinitialiser le texte d'information
+      const infoElement = document.getElementById('waste-info');
+      if (infoElement) {
+        infoElement.textContent = "Triez vos déchets pour en savoir plus!";
+      }
+    }
 
     // Réinitialiser le joueur
     this.player.position.set(config.width / 2, config.height / 2);
